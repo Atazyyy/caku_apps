@@ -1,0 +1,46 @@
+name: caku_apps
+
+description: "Aplikasi pengelola keuangan pribadi yang modern dan fungsional dengan fitur OCR."
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ===== UI & UTILITY =====
+  cupertino_icons: ^1.0.2
+  google_fonts: ^6.1.0
+  intl: ^0.19.0
+
+  # ===== CHARTS & REPORTS =====
+  fl_chart: ^0.66.0
+  csv: ^6.0.0
+  path_provider: ^2.1.2
+
+  # ===== DATABASE & LOCAL STORAGE =====
+  sqflite: ^2.3.0
+  path: ^1.9.0
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.2
+
+  # ===== IMAGE & CAMERA =====
+  image_picker: ^1.0.7
+  http: ^1.1.0
+
+  # ===== WINDOWS SUPPORT =====
+  sqflite_common_ffi: ^2.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
