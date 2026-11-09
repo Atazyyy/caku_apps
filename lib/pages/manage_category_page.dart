@@ -166,27 +166,30 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
                     const Align(alignment: Alignment.centerLeft, child: Text("Pilih Ikon:", style: TextStyle(fontWeight: FontWeight.bold))),
                     const SizedBox(height: 10),
                     Container(
-                      height: 200, 
+                      height: 200,
                       decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-                      child: GridView.builder(
+                      child: SingleChildScrollView(
                         padding: const EdgeInsets.all(8),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, crossAxisSpacing: 8, mainAxisSpacing: 8),
-                        itemCount: _availableIcons.length,
-                        itemBuilder: (context, index) {
-                          final icon = _availableIcons[index];
-                          final isSelected = icon == selectedIcon;
-                          return GestureDetector(
-                            onTap: () => setDialogState(() => selectedIcon = icon),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppColors.primary : Colors.grey[100],
-                                shape: BoxShape.circle,
-                                border: isSelected ? Border.all(color: AppColors.secondary, width: 2) : null,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _availableIcons.map((icon) {
+                            final isSelected = icon == selectedIcon;
+                            return GestureDetector(
+                              onTap: () => setDialogState(() => selectedIcon = icon),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: isSelected ? AppColors.primary : Colors.grey[100],
+                                  shape: BoxShape.circle,
+                                  border: isSelected ? Border.all(color: AppColors.secondary, width: 2) : null,
+                                ),
+                                child: Icon(icon, color: isSelected ? Colors.white : Colors.black54, size: 20),
                               ),
-                              child: Icon(icon, color: isSelected ? Colors.white : Colors.black54, size: 20),
-                            ),
-                          );
-                        },
+                            );
+                          }).toList(),
+                        ),
                       ),
                     ),
                   ],

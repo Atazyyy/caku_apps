@@ -271,65 +271,28 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     const SizedBox(height: 25),
-                    SizedBox(
-                      width: double.infinity,
-                      child: GridView.count(
-                        crossAxisCount: 3,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 6,
-                        crossAxisSpacing: 6,
-                        childAspectRatio: 1.3,
-                        children: [
-                          ...List.generate(9, (index) {
-                            int number = index + 1;
-                            return _buildPinButton(
-                              number.toString(),
-                              () {
-                                setDialogState(() {
-                                  if (step == 0 &&
-                                      pin.length < PinUtils.pinLength) {
-                                    pin += number.toString();
-                                  } else if (step == 1 &&
-                                      confirmPin.length <
-                                          PinUtils.pinLength) {
-                                    confirmPin += number.toString();
-                                  }
-                                });
-                              },
-                            );
-                          }),
-                          _buildPinButton(
-                            '⌫',
-                            () {
-                              setDialogState(() {
-                                if (step == 0 && pin.isNotEmpty) {
-                                  pin = pin.substring(0, pin.length - 1);
-                                } else if (step == 1 &&
-                                    confirmPin.isNotEmpty) {
-                                  confirmPin = confirmPin.substring(
-                                      0, confirmPin.length - 1);
-                                }
-                              });
-                            },
-                          ),
-                          _buildPinButton(
-                            '0',
-                            () {
-                              setDialogState(() {
-                                if (step == 0 &&
-                                    pin.length < PinUtils.pinLength) {
-                                  pin += '0';
-                                } else if (step == 1 &&
-                                    confirmPin.length <
-                                        PinUtils.pinLength) {
-                                  confirmPin += '0';
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
+                    _buildPinKeypad(
+                      onDigit: (digit) {
+                        setDialogState(() {
+                          if (step == 0 &&
+                              pin.length < PinUtils.pinLength) {
+                            pin += digit;
+                          } else if (step == 1 &&
+                              confirmPin.length < PinUtils.pinLength) {
+                            confirmPin += digit;
+                          }
+                        });
+                      },
+                      onBackspace: () {
+                        setDialogState(() {
+                          if (step == 0 && pin.isNotEmpty) {
+                            pin = pin.substring(0, pin.length - 1);
+                          } else if (step == 1 && confirmPin.isNotEmpty) {
+                            confirmPin = confirmPin.substring(
+                                0, confirmPin.length - 1);
+                          }
+                        });
+                      },
                     ),
                   ],
                 ),
@@ -459,74 +422,35 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     const SizedBox(height: 25),
-                    SizedBox(
-                      width: double.infinity,
-                      child: GridView.count(
-                        crossAxisCount: 3,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 6,
-                        crossAxisSpacing: 6,
-                        childAspectRatio: 1.3,
-                        children: [
-                          ...List.generate(9, (index) {
-                            int number = index + 1;
-                            return _buildPinButton(
-                              number.toString(),
-                              () {
-                                setDialogState(() {
-                                  if (step == 0 &&
-                                      currentPin.length < PinUtils.pinLength) {
-                                    currentPin += number.toString();
-                                  } else if (step == 1 &&
-                                      newPin.length < PinUtils.pinLength) {
-                                    newPin += number.toString();
-                                  } else if (step == 2 &&
-                                      confirmPin.length <
-                                          PinUtils.pinLength) {
-                                    confirmPin += number.toString();
-                                  }
-                                });
-                              },
-                            );
-                          }),
-                          _buildPinButton(
-                            '⌫',
-                            () {
-                              setDialogState(() {
-                                if (step == 0 && currentPin.isNotEmpty) {
-                                  currentPin = currentPin.substring(
-                                      0, currentPin.length - 1);
-                                } else if (step == 1 && newPin.isNotEmpty) {
-                                  newPin = newPin.substring(0, newPin.length - 1);
-                                } else if (step == 2 &&
-                                    confirmPin.isNotEmpty) {
-                                  confirmPin = confirmPin.substring(
-                                      0, confirmPin.length - 1);
-                                }
-                              });
-                            },
-                          ),
-                          _buildPinButton(
-                            '0',
-                            () {
-                              setDialogState(() {
-                                if (step == 0 &&
-                                    currentPin.length < PinUtils.pinLength) {
-                                  currentPin += '0';
-                                } else if (step == 1 &&
-                                    newPin.length < PinUtils.pinLength) {
-                                  newPin += '0';
-                                } else if (step == 2 &&
-                                    confirmPin.length <
-                                        PinUtils.pinLength) {
-                                  confirmPin += '0';
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
+                    _buildPinKeypad(
+                      onDigit: (digit) {
+                        setDialogState(() {
+                          if (step == 0 &&
+                              currentPin.length < PinUtils.pinLength) {
+                            currentPin += digit;
+                          } else if (step == 1 &&
+                              newPin.length < PinUtils.pinLength) {
+                            newPin += digit;
+                          } else if (step == 2 &&
+                              confirmPin.length < PinUtils.pinLength) {
+                            confirmPin += digit;
+                          }
+                        });
+                      },
+                      onBackspace: () {
+                        setDialogState(() {
+                          if (step == 0 && currentPin.isNotEmpty) {
+                            currentPin = currentPin.substring(
+                                0, currentPin.length - 1);
+                          } else if (step == 1 && newPin.isNotEmpty) {
+                            newPin =
+                                newPin.substring(0, newPin.length - 1);
+                          } else if (step == 2 && confirmPin.isNotEmpty) {
+                            confirmPin = confirmPin.substring(
+                                0, confirmPin.length - 1);
+                          }
+                        });
+                      },
                     ),
                   ],
                 ),
@@ -662,51 +586,21 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     const SizedBox(height: 25),
-                    SizedBox(
-                      width: double.infinity,
-                      child: GridView.count(
-                        crossAxisCount: 3,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 6,
-                        crossAxisSpacing: 6,
-                        childAspectRatio: 1.3,
-                        children: [
-                          ...List.generate(9, (index) {
-                            int number = index + 1;
-                            return _buildPinButton(
-                              number.toString(),
-                              () {
-                                setDialogState(() {
-                                  if (pin.length < PinUtils.pinLength) {
-                                    pin += number.toString();
-                                  }
-                                });
-                              },
-                            );
-                          }),
-                          _buildPinButton(
-                            '⌫',
-                            () {
-                              setDialogState(() {
-                                if (pin.isNotEmpty) {
-                                  pin = pin.substring(0, pin.length - 1);
-                                }
-                              });
-                            },
-                          ),
-                          _buildPinButton(
-                            '0',
-                            () {
-                              setDialogState(() {
-                                if (pin.length < PinUtils.pinLength) {
-                                  pin += '0';
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
+                    _buildPinKeypad(
+                      onDigit: (digit) {
+                        setDialogState(() {
+                          if (pin.length < PinUtils.pinLength) {
+                            pin += digit;
+                          }
+                        });
+                      },
+                      onBackspace: () {
+                        setDialogState(() {
+                          if (pin.isNotEmpty) {
+                            pin = pin.substring(0, pin.length - 1);
+                          }
+                        });
+                      },
                     ),
                   ],
                 ),
@@ -780,6 +674,39 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Keypad PIN berbasis Column/Row (bukan GridView) agar aman digunakan di
+  /// dalam AlertDialog, yang menghitung intrinsic dimensions dari content-nya.
+  Widget _buildPinKeypad({
+    required void Function(String digit) onDigit,
+    required VoidCallback onBackspace,
+  }) {
+    Widget buildRow(List<String> labels) {
+      return Row(
+        children: labels.map((label) {
+          if (label.isEmpty) {
+            return const Expanded(child: SizedBox());
+          }
+          return Expanded(
+            child: _buildPinButton(
+              label,
+              label == '⌫' ? onBackspace : () => onDigit(label),
+            ),
+          );
+        }).toList(),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        buildRow(const ['1', '2', '3']),
+        buildRow(const ['4', '5', '6']),
+        buildRow(const ['7', '8', '9']),
+        buildRow(const ['⌫', '0', '']),
+      ],
     );
   }
 
