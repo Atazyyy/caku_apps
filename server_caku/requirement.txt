@@ -1,0 +1,25 @@
+# requirements.txt - Dependencies untuk OCR Caku Server
+# Created: January 2026
+
+# Web Framework & API
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Computer Vision & Image Processing
+opencv-python==4.8.1.78
+numpy==1.24.3
+
+# OCR Engine
+easyocr==1.7.0
+
+# Deep Learning Framework (dependency untuk EasyOCR)
+torch==2.0.1
+torchvision==0.15.2
+
+# Utilities
+pillow==9.5.0
+requests==2.31.0
+
+# Logging & Monitoring (Optional)
+python-json-logger==2.0.7

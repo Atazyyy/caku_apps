@@ -1,0 +1,15 @@
+# ===== Python =====
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# ===== Runtime artifacts =====
+tmp/
+results/
+*.log
+
+# ===== Model alternatif (besar, tidak dipakai aplikasi) =====
+# Aplikasi memakai models/best_float16.tflite yang sudah disertakan.
+models/best_float32.tflite

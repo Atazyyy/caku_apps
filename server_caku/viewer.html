@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAKU OCR - Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f9f9ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+        
+        .upload-area input {
+            display: none;
+        }
+        
+        .upload-text {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .upload-hint {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #667eea;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .results.active {
+            display: block;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fafafa;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .info-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            word-break: break-word;
+        }
+        
+        .items-list {
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .item-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+        
+        .item-row:last-child {
+            border-bottom: none;
+        }
+        
+        .item-row.header {
+            background: #f0f0f0;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #666;
+        }
+        
+        .item-name {
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .item-price {
+            text-align: right;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .item-qty {
+            text-align: center;
+            color: #666;
+        }
+        
+        .totals-summary {
+            background: white;
+            border-radius: 6px;
+            padding: 20px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        
+        .total-row.final {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+            border: none;
+            padding-top: 10px;
+            margin-top: 10px;
+            border-top: 2px solid #667eea;
+        }
+        
+        .total-label {
+            color: #666;
+        }
+        
+        .total-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .visualization {
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .visualization img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .error.active {
+            display: block;
+        }
+        
+        .success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .success.active {
+            display: block;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border-top: 4px solid #667eea;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .item-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 CAKU OCR Visualization</h1>
+            <p>Receipt Recognition dengan YOLO + EasyOCR</p>
+        </div>
+        
+        <div class="content">
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="fileInput" accept="image/*">
+                <div class="upload-text">📸 Click to choose an image or drag & drop</div>
+                <div class="upload-hint">Supported formats: JPG, PNG, WebP</div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="button" onclick="document.getElementById('fileInput').click()">Choose File</button>
+                <button class="button" id="processBtn" disabled>Upload & Process</button>
+            </div>
+            
+            <div class="error" id="errorBox"></div>
+            <div class="success" id="successBox"></div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div>Processing... (20-30 seconds)</div>
+            </div>
+            
+            <div class="results" id="results">
+                <!-- Results will be inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const processBtn = document.getElementById('processBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const errorBox = document.getElementById('errorBox');
+        const successBox = document.getElementById('successBox');
+        
+        // Server URL - IMPORTANT: Change this to your actual server URL
+        const SERVER_URL = 'http://localhost:8000';
+        
+        let selectedFile = null;
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect();
+            }
+        });
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        processBtn.addEventListener('click', processImage);
+        
+        function handleFileSelect() {
+            selectedFile = fileInput.files[0];
+            if (selectedFile && selectedFile.type.startsWith('image/')) {
+                processBtn.disabled = false;
+                uploadArea.textContent = `✓ Selected: ${selectedFile.name}`;
+            } else {
+                selectedFile = null;
+                processBtn.disabled = true;
+                uploadArea.textContent = '📸 Click to choose an image or drag & drop';
+            }
+        }
+        
+        async function processImage() {
+            if (!selectedFile) return;
+            
+            errorBox.classList.remove('active');
+            successBox.classList.remove('active');
+            loading.classList.add('active');
+            results.classList.remove('active');
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                
+                const response = await fetch(`${SERVER_URL}/predict`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayResults(data);
+                
+                successBox.textContent = '✓ Image processed successfully!';
+                successBox.classList.add('active');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                errorBox.textContent = `❌ Error: ${error.message}`;
+                errorBox.classList.add('active');
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+        
+        function displayResults(data) {
+            results.classList.add('active');
+            
+            let html = '';
+            
+            // Visualization
+            if (data.visualization) {
+                html += `
+                    <div class="section">
+                        <h2>📊 YOLO Detection Visualization</h2>
+                        <div class="visualization">
+                            <img src="${data.visualization}" alt="YOLO Detection">
+                        </div>
+                        <p class="empty">Warna: Green=struk, Red=info_toko, Orange=items, Purple=total</p>
+                    </div>
+                `;
+            }
+            
+            // Stats
+            html += `
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value">${data.yolo_count}</div>
+                        <div class="stat-label">Regions Detected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.items_count}</div>
+                        <div class="stat-label">Items Found</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.process_time_seconds}s</div>
+                        <div class="stat-label">Processing Time</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.version}</div>
+                        <div class="stat-label">Server Version</div>
+                    </div>
+                </div>
+            `;
+            
+            // Merchant Info
+            const merch = data.merchant_info;
+            html += `
+                <div class="section">
+                    <h2>🏪 Merchant Information</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Store Name</div>
+                            <div class="info-value">${merch.name || '-'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Phone</div>
+                            <div class="info-value">${merch.phone || '-'}</div>
+                        </div>
+                        <div class="info-item" style="grid-column: 1 / -1;">
+                            <div class="info-label">Address</div>
+                            <div class="info-value">${merch.address || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Items
+            html += `
+                <div class="section">
+                    <h2>📦 Items (${data.items.length})</h2>
+            `;
+            
+            if (data.items.length > 0) {
+                html += `
+                    <div class="items-list">
+                        <div class="item-row header">
+                            <div>Item Name</div>
+                            <div>Price</div>
+                            <div>Qty</div>
+                        </div>
+                `;
+                
+                data.items.forEach(item => {
+                    html += `
+                        <div class="item-row">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-price">Rp ${formatNumber(item.price)}</div>
+                            <div class="item-qty">${item.quantity}</div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            } else {
+                html += `<div class="empty">No items detected</div>`;
+            }
+            
+            html += `</div>`;
+            
+            // Totals
+            const totals = data.totals;
+            html += `
+                <div class="section">
+                    <h2>💰 Totals</h2>
+                    <div class="totals-summary">
+                        <div class="total-row">
+                            <span class="total-label">Subtotal</span>
+                            <span class="total-value">Rp ${formatNumber(totals.subtotal)}</span>
+                        </div>
+                        ${totals.discount > 0 ? `
+                            <div class="total-row">
+                                <span class="total-label">Discount</span>
+                                <span class="total-value">-Rp ${formatNumber(totals.discount)}</span>
+                            </div>
+                        ` : ''}
+                        ${totals.tax > 0 ? `
+                            <div class="total-row">
+                                <span class="total-label">Tax</span>
+                                <span class="total-value">Rp ${formatNumber(totals.tax)}</span>
+                            </div>
+                        ` : ''}
+                        <div class="total-row final">
+                            <span class="total-label">Total</span>
+                            <span class="total-value">Rp ${formatNumber(totals.total)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            results.innerHTML = html;
+        }
+        
+        function formatNumber(num) {
+            return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+    </script>
+</body>
+</html>

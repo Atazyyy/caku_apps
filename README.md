@@ -48,6 +48,13 @@ lib/
     ├── constants.dart            # AppConfig, PinUtils, tema, DTO
     ├── app_lock.dart             # State kunci aplikasi lintas widget
     └── backup_utils.dart         # Penamaan file backup
+
+server_caku/
+├── main_improved.py              # Server OCR v5.7.2 (endpoint /predict)
+├── main_improved_v6.py           # Server OCR v6 (/predict + /process_receipt)
+├── models/best_float16.tflite    # Model YOLOv8 yang dipakai
+├── sample/                       # Contoh gambar struk
+└── requirements.txt              # Dependency Python
 ```
 
 ## 🚀 Menjalankan Aplikasi
@@ -61,11 +68,18 @@ flutter run -d android      # perangkat Android
 
 ## 🖥️ Menjalankan Server OCR
 
-Server berada di folder terpisah (`../server_caku`).
+Server disertakan di folder [`server_caku/`](server_caku/) beserta model
+`best_float16.tflite` dan contoh gambar struk.
 
 ```bash
-cd ../server_caku
+cd server_caku
+
+# Pertama kali: buat virtual environment & install dependency
+python -m venv venv
 .\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# Jalankan server
 python main_improved.py
 ```
 
