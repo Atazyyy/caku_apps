@@ -3,28 +3,31 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
-import 'package:intl/intl.dart';
 
 import '../models/transaction_model.dart';
 import '../models/category_model.dart';
+import 'transaction_filter.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
+
+  /// Nama database aktif. Dipakai juga oleh fitur backup.
+  static const String databaseName = 'caku_newdata.db';
 
   DatabaseHelper._init();
 
   // Fungsi untuk mendapatkan database (lazy loading)
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('caku_newdata.db');
+    _database = await _initDB(databaseName);
     return _database!;
   }
 
   // Fungsi untuk inisialisasi database (menentukan path untuk Windows/Linux/Mobile)
   Future<Database> _initDB(String filePath) async {
     String path;
-    
+
     if (Platform.isWindows || Platform.isLinux) {
       final Directory documentsDirectory = await getApplicationDocumentsDirectory();
       path = p.join(documentsDirectory.path, filePath);
@@ -33,7 +36,12 @@ class DatabaseHelper {
       path = p.join(dbPath, filePath);
     }
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
 
   // Fungsi untuk membuat tabel database saat pertama kali install
@@ -59,8 +67,29 @@ class DatabaseHelper {
     )
     ''');
 
+    await _createIndexes(db);
+
     // Masukkan kategori default saat pertama kali
     await _insertDefaultCategories(db);
+  }
+
+  // Migrasi dari versi 1 ke versi 2: tambahkan index untuk mempercepat filter.
+  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _createIndexes(db);
+    }
+  }
+
+  Future<void> _createIndexes(Database db) async {
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type)',
+    );
   }
 
   // Fungsi untuk memasukkan kategori default saat instalasi
@@ -91,66 +120,46 @@ class DatabaseHelper {
   // Fungsi untuk membaca semua transaksi
   Future<List<TransactionModel>> readAllTransactions() async {
     final db = await instance.database;
-    final result = await db.query('transactions', orderBy: 'id DESC');
+    final result = await db.query(
+      'transactions',
+      orderBy: 'date DESC, id DESC',
+    );
     return result.map((json) => TransactionModel.fromMap(json)).toList();
   }
 
-  // ✅ TASK 1: Fungsi untuk mencari transaksi berdasarkan query (judul atau kategori)
-  Future<List<TransactionModel>> searchTransactions(String query) async {
-    if (query.isEmpty) return readAllTransactions();
-    
-    final db = await database;
-    final result = await db.query(
-      'transactions',
-      where: 'title LIKE ? OR category LIKE ?',
-      whereArgs: ['%$query%', '%$query%'],
-      orderBy: 'date DESC',
-    );
-    return result.map((t) => TransactionModel.fromMap(t)).toList();
-  }
-
-  // ✅ TASK 2: Fungsi untuk filter transaksi berdasarkan kategori, tipe, dan tanggal
+  // ✅ TASK 2: Fungsi untuk filter transaksi berdasarkan pencarian,
+  // kategori, tipe, dan tanggal.
   Future<List<TransactionModel>> filterTransactions({
+    String? search,
     String? category,
     DateTime? startDate,
     DateTime? endDate,
     String? type,
   }) async {
     final db = await database;
-    
-    List<String> whereConditions = [];
-    List<dynamic> whereArgs = [];
-    
-    // Filter berdasarkan kategori
-    if (category != null && category.isNotEmpty && category != 'all') {
-      whereConditions.add('category = ?');
-      whereArgs.add(category);
-    }
-    
-    // Filter berdasarkan tipe (IN/OUT)
-    if (type != null && type.isNotEmpty && type != 'all') {
-      whereConditions.add('type = ?');
-      whereArgs.add(type);
-    }
-    
-    // Filter berdasarkan rentang tanggal
-    if (startDate != null && endDate != null) {
-      whereConditions.add('date BETWEEN ? AND ?');
-      whereArgs.add(DateFormat('yyyy-MM-dd').format(startDate));
-      whereArgs.add(DateFormat('yyyy-MM-dd').format(endDate));
-    }
-    
-    final String? whereClause = whereConditions.isNotEmpty ? whereConditions.join(' AND ') : null;
-    final List<dynamic>? finalWhereArgs = whereArgs.isNotEmpty ? whereArgs : null;
-    
+
+    final query = TransactionFilter(
+      search: search,
+      category: category,
+      type: type,
+      startDate: startDate,
+      endDate: endDate,
+    ).build();
+
     final result = await db.query(
       'transactions',
-      where: whereClause,
-      whereArgs: finalWhereArgs,
-      orderBy: 'date DESC',
+      where: query.where,
+      whereArgs: query.args,
+      orderBy: 'date DESC, id DESC',
     );
-    
+
     return result.map((t) => TransactionModel.fromMap(t)).toList();
+  }
+
+  // ✅ TASK 1: Fungsi untuk mencari transaksi berdasarkan query
+  // (judul atau kategori). Tetap dipertahankan untuk kompatibilitas.
+  Future<List<TransactionModel>> searchTransactions(String query) async {
+    return filterTransactions(search: query);
   }
 
   // ✅ TASK 3: Fungsi untuk update/mengubah transaksi yang sudah ada
@@ -187,13 +196,11 @@ class DatabaseHelper {
     return result.map((json) => CategoryModel.fromMap(json)).toList();
   }
 
-  // ✅ Fungsi untuk mendapatkan nama-nama kategori unik (untuk filter)
+  // ✅ Fungsi untuk mendapatkan nama-nama kategori (untuk filter)
   Future<List<String>> getAllCategoryNames() async {
     final db = await database;
-    final result = await db.rawQuery(
-      'SELECT DISTINCT category FROM transactions ORDER BY category ASC'
-    );
-    return result.map((row) => row['category'] as String).toList();
+    final result = await db.query('categories', orderBy: 'name ASC');
+    return result.map((row) => row['name'] as String).toList();
   }
 
   // Fungsi untuk menambah kategori baru
@@ -206,6 +213,44 @@ class DatabaseHelper {
   Future<int> deleteCategory(int id) async {
     final db = await instance.database;
     return await db.delete('categories', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Jumlah transaksi yang masih memakai nama kategori tertentu.
+  Future<int> countTransactionsByCategory(String categoryName) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) AS total FROM transactions WHERE category = ?',
+      [categoryName],
+    );
+    return (result.first['total'] as num?)?.toInt() ?? 0;
+  }
+
+  /// Pastikan kategori dengan nama tertentu ada (dibuat jika belum ada).
+  Future<void> ensureCategoryExists(String categoryName) async {
+    final db = await database;
+    final existing = await db.query(
+      'categories',
+      where: 'name = ?',
+      whereArgs: [categoryName],
+      limit: 1,
+    );
+    if (existing.isEmpty) {
+      await db.insert('categories', {
+        'name': categoryName,
+        'icon_code': Icons.category.codePoint,
+      });
+    }
+  }
+
+  /// Pindahkan semua transaksi dari satu kategori ke kategori lain.
+  Future<int> reassignCategory(String from, String to) async {
+    final db = await database;
+    return await db.update(
+      'transactions',
+      {'category': to},
+      where: 'category = ?',
+      whereArgs: [from],
+    );
   }
 
   // ===== REPORT & STATS =====

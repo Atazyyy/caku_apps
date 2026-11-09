@@ -40,9 +40,90 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
     }
   }
 
-  Future<void> _deleteCategory(int id) async {
-    await DatabaseHelper.instance.deleteCategory(id);
-    _loadCategories(); 
+  Future<void> _deleteCategory(CategoryModel category) async {
+    if (category.name == 'Lainnya') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Kategori "Lainnya" tidak boleh dihapus'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final affected =
+          await DatabaseHelper.instance.countTransactionsByCategory(
+        category.name,
+      );
+
+      if (affected > 0) {
+        await DatabaseHelper.instance.ensureCategoryExists('Lainnya');
+        await DatabaseHelper.instance.reassignCategory(
+          category.name,
+          'Lainnya',
+        );
+      }
+
+      await DatabaseHelper.instance.deleteCategory(category.id!);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            affected > 0
+                ? 'Kategori "${category.name}" dihapus. '
+                    '$affected transaksi dipindahkan ke "Lainnya".'
+                : 'Kategori "${category.name}" dihapus.',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _loadCategories();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menghapus kategori: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmDeleteCategory(CategoryModel category) async {
+    final affected =
+        await DatabaseHelper.instance.countTransactionsByCategory(category.name);
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Kategori?'),
+        content: Text(
+          affected > 0
+              ? 'Kategori "${category.name}" dipakai oleh $affected transaksi. '
+                  'Semua transaksi tersebut akan dipindahkan ke kategori '
+                  '"Lainnya".'
+              : 'Yakin menghapus "${category.name}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deleteCategory(category);
+            },
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   // --- SOLUSI ANTI CRASH WINDOWS ---
@@ -159,7 +240,7 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
       // Mencegah back gesture/tombol fisik
       body: PopScope(
         canPop: false,
-        onPopInvoked: (didPop) {
+        onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
           _safePop();
         },
@@ -175,27 +256,13 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
                     margin: const EdgeInsets.only(bottom: 10),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                         child: Icon(cat.icon, color: AppColors.primary),
                       ),
                       title: Text(cat.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                           showDialog(context: context, builder: (ctx) => AlertDialog(
-                             title: const Text("Hapus Kategori?"),
-                             content: Text("Yakin menghapus '${cat.name}'?"),
-                             actions: [
-                               TextButton(onPressed: ()=>Navigator.pop(ctx), child: const Text("Batal")),
-                               TextButton(onPressed: () async {
-                                 Navigator.pop(ctx);
-                                 // Hapus dengan jeda sedikit agar UI tidak kaget
-                                 await Future.delayed(const Duration(milliseconds: 100));
-                                 _deleteCategory(cat.id!);
-                               }, child: const Text("Hapus", style: TextStyle(color: Colors.red))),
-                             ],
-                           ));
-                        },
+                        onPressed: () => _confirmDeleteCategory(cat),
                       ),
                     ),
                   );

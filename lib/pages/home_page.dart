@@ -15,18 +15,23 @@ class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  State createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State {
+class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
+  int _refreshToken = 0;
 
   Widget _getBody() {
-    if (_currentIndex == 0) return const DashboardView();
-    if (_currentIndex == 1) return const ReportPage();
+    if (_currentIndex == 0) {
+      return DashboardView(refreshToken: _refreshToken);
+    }
+    if (_currentIndex == 1) {
+      return ReportPage(refreshToken: _refreshToken);
+    }
     if (_currentIndex == 2) return const OCRPage();
     if (_currentIndex == 3) return const SettingsPage();
-    return const DashboardView();
+    return DashboardView(refreshToken: _refreshToken);
   }
 
   Widget _buildNavItem(IconData icon, int index) {
@@ -57,7 +62,9 @@ class _HomePageState extends State {
               context,
               MaterialPageRoute(builder: (context) => const AddTransactionPage()),
             );
-            setState(() {});
+            if (mounted) {
+              setState(() => _refreshToken++);
+            }
           },
           child: const Icon(Icons.add, size: 32, color: Colors.white),
         ),
@@ -85,13 +92,15 @@ class _HomePageState extends State {
 }
 
 class DashboardView extends StatefulWidget {
-  const DashboardView({super.key});
+  final int refreshToken;
+
+  const DashboardView({super.key, this.refreshToken = 0});
 
   @override
-  State createState() => _DashboardViewState();
+  State<DashboardView> createState() => _DashboardViewState();
 }
 
-class _DashboardViewState extends State {
+class _DashboardViewState extends State<DashboardView> {
   double totalSaldo = 0;
   double pemasukan = 0;
   double pengeluaran = 0;
@@ -112,9 +121,12 @@ class _DashboardViewState extends State {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadData();
+  void didUpdateWidget(covariant DashboardView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshToken != widget.refreshToken) {
+      _loadData();
+      _loadCategories();
+    }
   }
 
   Future<void> _loadCategories() async {
@@ -132,22 +144,13 @@ class _DashboardViewState extends State {
 
   Future<void> _loadData() async {
     try {
-      List<TransactionModel> transactions;
-      if (_searchQuery.isNotEmpty) {
-        transactions = await DatabaseHelper.instance.searchTransactions(_searchQuery);
-      } else if (_selectedCategory != 'all' ||
-          _selectedType != 'all' ||
-          _startDate != null ||
-          _endDate != null) {
-        transactions = await DatabaseHelper.instance.filterTransactions(
-          category: _selectedCategory != 'all' ? _selectedCategory : null,
-          type: _selectedType != 'all' ? _selectedType : null,
-          startDate: _startDate,
-          endDate: _endDate,
-        );
-      } else {
-        transactions = await DatabaseHelper.instance.readAllTransactions();
-      }
+      final transactions = await DatabaseHelper.instance.filterTransactions(
+        search: _searchQuery,
+        category: _selectedCategory != 'all' ? _selectedCategory : null,
+        type: _selectedType != 'all' ? _selectedType : null,
+        startDate: _startDate,
+        endDate: _endDate,
+      );
 
       double income = 0;
       double expense = 0;

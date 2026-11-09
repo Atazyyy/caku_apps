@@ -195,15 +195,15 @@ class _OCRPageState extends State<OCRPage> {
         'keterangan': _buildKeterangan(),
       };
 
-      print('🔄 From AddTransaction: ${widget.fromAddTransaction}');
+      debugPrint('🔄 From AddTransaction: ${widget.fromAddTransaction}');
 
       if (widget.fromAddTransaction) {
         // ✅ FLOW 2 (Dari Add Transaction): Pop balik membawa data
-        print('📤 Popping with data to AddTransaction');
+        debugPrint('📤 Popping with data to AddTransaction');
         Navigator.of(context).pop(ocrData);
       } else {
         // ✅ FLOW 1 (Dari Nav Bar): Push biasa (JANGAN pushReplacement)
-        print('📥 Pushing to AddTransaction from nav bar');
+        debugPrint('📥 Pushing to AddTransaction from nav bar');
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => AddTransactionPage(
@@ -345,16 +345,16 @@ class _OCRPageState extends State<OCRPage> {
                 ),
               const SizedBox(height: 24),
               if (_isLoading)
-                Column(
+                const Column(
                   children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    const Text(
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
                       'Processing receipt with AI...',
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text(
                       'YOLOv8 Detection + EasyOCR',
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                       textAlign: TextAlign.center,

@@ -4,8 +4,7 @@ import '../database/db_helper.dart';
 import '../models/transaction_model.dart';
 import '../models/category_model.dart';
 import '../utils/constants.dart';
-import 'manage_category_page.dart';
-import 'ocr_page.dart';
+import 'manage_category_page.dart';import 'ocr_page.dart';
 
 class AddTransactionPage extends StatefulWidget {
   final double? amountFromOCR;
@@ -115,8 +114,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           debugPrint(
               '✅ Extracted - Nominal: $nominal, Keterangan length: ${keterangan?.length ?? 0}');
 
-          final nominalDouble =
-              (nominal is int) ? nominal.toDouble() : (nominal as double);
+          final nominalDouble = (nominal as num).toDouble();
 
           setState(() {
             _amountController.text =
@@ -166,7 +164,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       try {
         final transaction = TransactionModel(
           title: _titleController.text,
-          amount: double.parse(_amountController.text.replaceAll('.', '')),
+          amount: double.parse(
+            _amountController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+          ),
           category: _selectedCategoryName ?? 'Lainnya',
           type: _type,
           date: _dateController.text,

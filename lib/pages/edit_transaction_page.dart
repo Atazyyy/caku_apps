@@ -25,6 +25,24 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
   List<CategoryModel> _categories = [];
   late DateTime _selectedDate;
 
+  /// Kategori untuk dropdown. Jika kategori transaksi sudah tidak ada di
+  /// database, tetap ditampilkan agar Dropdown tidak error.
+  List<CategoryModel> get _categoryItems {
+    final items = List<CategoryModel>.from(_categories);
+    final selected = _selectedCategoryName;
+    if (selected != null &&
+        selected.isNotEmpty &&
+        !items.any((category) => category.name == selected)) {
+      items.add(
+        CategoryModel(
+          name: selected,
+          iconCode: Icons.category.codePoint,
+        ),
+      );
+    }
+    return items;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +76,9 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
         final updatedTransaction = TransactionModel(
           id: widget.transaction.id,
           title: _titleController.text,
-          amount: double.parse(_amountController.text.replaceAll(',', '')),
+          amount: double.parse(
+            _amountController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+          ),
           category: _selectedCategoryName ?? 'Lainnya',
           type: _type,
           date: _dateController.text,
@@ -191,7 +211,7 @@ class _EditTransactionPageState extends State<EditTransactionPage> {
                     isExpanded: true,
                     value: _selectedCategoryName,
                     hint: const Text('Pilih Kategori'),
-                    items: _categories.map((cat) {
+                    items: _categoryItems.map((cat) {
                       return DropdownMenuItem<String>(
                         value: cat.name,
                         child: Row(

@@ -1,15 +1,60 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ===== OCR SERVER CONFIGURATION =====
 class AppConfig {
-  static const String serverIp = '172.20.10.11'; //
-  static const int serverPort = 8000;
-  static String get serverUrl => 'http://$serverIp:$serverPort';
+  static const String defaultServerIp = '172.20.10.11';
+  static const int defaultServerPort = 8000;
+
+  static const String _serverIpKey = 'server_ip';
+  static const String _serverPortKey = 'server_port';
+
+  static String _serverIp = defaultServerIp;
+  static int _serverPort = defaultServerPort;
+
+  static String get serverIp => _serverIp;
+  static int get serverPort => _serverPort;
+  static String get serverUrl => 'http://$_serverIp:$_serverPort';
   static String get ocrHealthEndpoint => '$serverUrl/health';
   static String get ocrPredictEndpoint => '$serverUrl/predict';
   static const int requestTimeout = 30;
   static const String defaultCurrency = 'Rp';
+
+  /// Membaca konfigurasi server yang tersimpan (dipanggil saat startup).
+  static Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedIp = prefs.getString(_serverIpKey);
+    final storedPort = prefs.getInt(_serverPortKey);
+
+    if (storedIp != null && storedIp.trim().isNotEmpty) {
+      _serverIp = storedIp.trim();
+    }
+    if (storedPort != null && storedPort > 0 && storedPort <= 65535) {
+      _serverPort = storedPort;
+    }
+  }
+
+  /// Menyimpan konfigurasi server baru dan langsung memakainya.
+  static Future<void> save({required String ip, required int port}) async {
+    final normalizedIp = ip.trim();
+    if (normalizedIp.isEmpty) {
+      throw ArgumentError('Alamat IP tidak boleh kosong');
+    }
+    if (port < 1 || port > 65535) {
+      throw ArgumentError('Port harus di antara 1 dan 65535');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_serverIpKey, normalizedIp);
+    await prefs.setInt(_serverPortKey, port);
+
+    _serverIp = normalizedIp;
+    _serverPort = port;
+  }
 }
 
 // ===== OCR RESPONSE MODELS =====
@@ -227,14 +272,41 @@ class AppThemes {
 class PinUtils {
   static const String pinKey = 'app_pin'; // SharedPreferences key
   static const int pinLength = 4;
+  static const String _salt = 'caku_finance_pin_v1';
 
-  // Generate PIN hash (simple version - untuk production gunakan bcrypt)
+  static final RegExp _legacyPinPattern = RegExp(r'^\d{4}$');
+  static final RegExp _hashedPinPattern = RegExp(r'^[a-f0-9]{64}$');
+
+  /// Generate SHA-256 hash dengan salt.
+  ///
+  /// Catatan: PIN hanya 4 digit, sehingga hash ini tetap bisa di-brute force
+  /// jika penyerang punya akses ke storage. Pembatasan percobaan di layar PIN
+  /// menjadi lapisan pertahanan utama.
   static String hashPin(String pin) {
-    return pin; // Simplified for demo
+    return sha256.convert(utf8.encode('$_salt:$pin')).toString();
   }
 
-  // Validate PIN
-  static bool validatePin(String enteredPin, String storedPin) {
+  /// Apakah nilai tersimpan masih berupa PIN plaintext versi lama?
+  static bool isLegacyPin(String storedPin) {
+    return _legacyPinPattern.hasMatch(storedPin);
+  }
+
+  /// Apakah nilai tersimpan berupa hash SHA-256?
+  static bool isHashedPin(String storedPin) {
+    return _hashedPinPattern.hasMatch(storedPin);
+  }
+
+  /// Validasi PIN yang mendukung format hash baru maupun plaintext legacy.
+  static bool verifyPin(String enteredPin, String storedPin) {
+    if (storedPin.isEmpty) return false;
+    if (isHashedPin(storedPin)) {
+      return hashPin(enteredPin) == storedPin;
+    }
     return enteredPin == storedPin;
+  }
+
+  /// Alias lama agar kode yang sudah ada tetap kompatibel.
+  static bool validatePin(String enteredPin, String storedPin) {
+    return verifyPin(enteredPin, storedPin);
   }
 }

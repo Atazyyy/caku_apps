@@ -2,14 +2,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:csv/csv.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../database/db_helper.dart';
-import '../models/transaction_model.dart';
 import '../utils/constants.dart';
 
 class ReportPage extends StatefulWidget {
-  const ReportPage({super.key});
+  final int refreshToken;
+
+  const ReportPage({super.key, this.refreshToken = 0});
 
   @override
   State<ReportPage> createState() => _ReportPageState();
@@ -20,10 +22,24 @@ class _ReportPageState extends State<ReportPage> {
   bool _isLoading = true;
   String _currentType = 'OUT'; // Default tampilkan Pengeluaran
 
+  final NumberFormat _currencyFormat = NumberFormat.currency(
+    locale: 'id',
+    symbol: 'Rp ',
+    decimalDigits: 0,
+  );
+
   @override
   void initState() {
     super.initState();
     _loadStats();
+  }
+
+  @override
+  void didUpdateWidget(covariant ReportPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshToken != widget.refreshToken) {
+      _loadStats();
+    }
   }
 
   // Fungsi untuk refresh data saat tab diklik
@@ -60,34 +76,53 @@ class _ReportPageState extends State<ReportPage> {
 
   Future<void> _exportToCSV() async {
     try {
-      List<TransactionModel> transactions = await DatabaseHelper.instance.readAllTransactions();
+      final transactions = await DatabaseHelper.instance.filterTransactions(
+        type: _currentType,
+      );
       if (transactions.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Tidak ada data untuk diexport")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Tidak ada data ${_currentType == 'IN' ? 'pemasukan' : 'pengeluaran'} '
+                'untuk diexport',
+              ),
+            ),
+          );
         }
         return;
       }
 
-      List<List<dynamic>> rows = [];
-      rows.add(["ID", "Tanggal", "Tipe", "Kategori", "Jumlah", "Keterangan"]);
+      final rows = <List<dynamic>>[
+        ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Jumlah', 'Keterangan'],
+      ];
 
-      for (var t in transactions) {
+      for (final t in transactions) {
         rows.add([t.id, t.date, t.type, t.category, t.amount, t.title]);
       }
 
-      String csvData = const ListToCsvConverter().convert(rows);
+      final csvData = const ListToCsvConverter().convert(rows);
       final directory = await getApplicationDocumentsDirectory();
-      final path = p.join(directory.path, "laporan_caku_${DateTime.now().millisecondsSinceEpoch}.csv");
-      
+      final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final fileName = 'laporan_caku_${_currentType.toLowerCase()}_$stamp.csv';
+      final path = p.join(directory.path, fileName);
+
       final file = File(path);
       await file.writeAsString(csvData);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Disimpan di: $path"), backgroundColor: AppColors.success));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Disimpan di: $path'),
+            backgroundColor: AppColors.success,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal export: $e"), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export: $e'), backgroundColor: Colors.red),
+        );
       }
     }
   }
@@ -190,7 +225,7 @@ class _ReportPageState extends State<ReportPage> {
                                   ),
                                   title: Text(item['category'] ?? '-'),
                                   trailing: Text(
-                                    "Rp ${amount.toStringAsFixed(0)}", 
+                                    _currencyFormat.format(amount),
                                     style: const TextStyle(fontWeight: FontWeight.bold)
                                   ),
                                 );
@@ -234,7 +269,7 @@ class _ReportPageState extends State<ReportPage> {
         decoration: BoxDecoration(
           color: isActive ? activeColor : Colors.grey[200],
           borderRadius: BorderRadius.circular(10),
-          boxShadow: isActive ? [BoxShadow(color: activeColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))] : [],
+          boxShadow: isActive ? [BoxShadow(color: activeColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))] : [],
         ),
         child: Center(
           child: Text(
@@ -263,7 +298,7 @@ class _Badge extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)],
       ),
       child: Column(

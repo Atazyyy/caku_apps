@@ -10,10 +10,11 @@ Aplikasi pencatat keuangan pribadi berbasis Flutter dengan fitur **OCR struk bel
 - **Transaksi** — tambah, edit, hapus, cari, serta filter kategori/tipe/rentang tanggal.
 - **Kategori custom** — tambah dan hapus kategori beserta ikon.
 - **Laporan** — grafik pie pemasukan/pengeluaran per kategori.
-- **Export CSV** — unduh seluruh transaksi dalam format CSV.
+- **Export CSV** — unduh transaksi sesuai tab pemasukan/pengeluaran dengan nama file bertimestamp.
 - **OCR struk** — foto atau pilih gambar struk, lalu data total & rincian otomatis diisikan ke form transaksi.
-- **PIN keamanan** — kunci aplikasi dengan PIN 4 digit.
-- **Backup database** — salin database SQLite ke folder Documents.
+- **PIN keamanan** — kunci aplikasi dengan PIN 4 digit (disimpan sebagai hash SHA-256 bersalt, dengan pembatasan 5 percobaan dan auto-lock).
+- **Backup database** — salin database SQLite aktif ke folder Documents dengan nama file bertimestamp.
+- **Pengaturan server** — atur alamat IP dan port server OCR langsung dari halaman Settings.
 
 ## 🧱 Teknologi
 
@@ -30,7 +31,9 @@ Aplikasi pencatat keuangan pribadi berbasis Flutter dengan fitur **OCR struk bel
 ```
 lib/
 ├── main.dart                     # Entry point + PIN lock
-├── database/db_helper.dart       # SQLite singleton & CRUD
+├── database/
+│   ├── db_helper.dart            # SQLite singleton, CRUD, filter, index
+│   └── transaction_filter.dart   # Builder WHERE untuk filter transaksi
 ├── models/                       # TransactionModel, CategoryModel
 ├── pages/
 │   ├── home_page.dart            # Bottom nav + dashboard
@@ -41,7 +44,10 @@ lib/
 │   ├── manage_category_page.dart
 │   └── settings_page.dart
 ├── services/ocr_service.dart     # HTTP client ke server OCR
-└── utils/constants.dart          # Konfigurasi server, DTO, tema, PIN utils
+└── utils/
+    ├── constants.dart            # AppConfig, PinUtils, tema, DTO
+    ├── app_lock.dart             # State kunci aplikasi lintas widget
+    └── backup_utils.dart         # Penamaan file backup
 ```
 
 ## 🚀 Menjalankan Aplikasi
@@ -68,34 +74,41 @@ Server berjalan di `http://0.0.0.0:8000` dan menyediakan:
 - `GET /health`
 - `POST /predict` (multipart field `file`)
 
-> Gunakan `main_improved.py` (v5.7.2). Versi `main_improved_v6.py` memakai endpoint `/process_receipt` sehingga **tidak kompatibel** dengan aplikasi ini.
+> Gunakan `main_improved.py` (v5.7.2). Versi `main_improved_v6.py` juga mendukung endpoint `/predict` (alias dari `/process_receipt`), sehingga kompatibel dengan aplikasi ini.
 
 ## ⚙️ Konfigurasi Server
 
-IP dan port server diatur di `lib/utils/constants.dart`:
+Alamat IP dan port server dapat diatur langsung dari aplikasi:
+
+**Settings → Server OCR** — isi IP/host dan port, lalu gunakan tombol **Tes Koneksi** untuk memeriksa koneksi sebelum menyimpan. Nilai disimpan di `SharedPreferences`.
+
+Nilai default (dipakai saat pertama kali) ada di `lib/utils/constants.dart`:
 
 ```dart
 class AppConfig {
-  static const String serverIp = '172.20.10.11';
-  static const int serverPort = 8000;
+  static const String defaultServerIp = '172.20.10.11';
+  static const int defaultServerPort = 8000;
 }
 ```
 
-Pastikan IP tersebut adalah alamat perangkat yang menjalankan server dan berada di jaringan yang sama dengan HP.
+Pastikan IP tersebut adalah alamat perangkat yang menjalankan server dan berada di jaringan yang sama dengan HP. Android sudah mengizinkan HTTP cleartext untuk koneksi ke server lokal.
 
 ## ✅ Status
 
-- `flutter analyze`: 0 error.
+- `flutter analyze`: 0 issues.
+- `flutter test`: 19 test lulus (PIN, filter transaksi, konfigurasi server, backup, widget).
 - Target utama: Windows desktop & Android.
-- Database aktif: `caku_newdata.db` (folder Documents pada desktop).
+- Database aktif: `caku_newdata.db` (folder Documents pada desktop, `getDatabasesPath()` pada mobile).
 
 ## 📝 Catatan
 
-Beberapa perbaikan yang direncanakan:
+Perbaikan yang sudah diterapkan:
 
-- [ ] Backup memakai database aktif (`caku_newdata.db`) + nama file bertimestamp.
-- [ ] Dukungan HTTP cleartext untuk Android.
-- [ ] Pengaturan IP server dari dalam aplikasi.
-- [ ] Refresh dashboard otomatis setelah menambah transaksi.
-- [ ] Filter tanggal fleksibel (hanya tanggal awal/akhir).
-- [ ] PIN disimpan dalam bentuk hash + pembatasan percobaan.
+- [x] Backup memakai database aktif (`caku_newdata.db`) + nama file bertimestamp.
+- [x] Dukungan HTTP cleartext untuk Android.
+- [x] Pengaturan IP server dari dalam aplikasi.
+- [x] Refresh dashboard otomatis setelah menambah transaksi.
+- [x] Filter tanggal fleksibel (hanya tanggal awal/akhir).
+- [x] PIN disimpan dalam bentuk hash + pembatasan percobaan.
+- [x] Hapus kategori memindahkan transaksi terkait ke "Lainnya" (tidak ada transaksi yatim).
+- [x] Parsing nominal hanya menerima digit (aman untuk format ribuan).
